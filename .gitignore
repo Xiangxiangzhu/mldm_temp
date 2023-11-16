@@ -185,3 +185,5 @@ dbconfig.yaml
 
 fig/
 wandb/
+*.xlsx
+220831
