@@ -35,10 +35,10 @@ X_train, X_test, y_train, y_test = train_test_split(features_scaled, labels, tes
 # 2. 模型训练与选择
 models = {
     # "DecisionTree": DecisionTreeClassifier(),
-    # "RandomForest": RandomForestClassifier(),
+    "RandomForest": RandomForestClassifier(),
     # "SVM": SVC(probability=True),
     # "BP_NeuralNetwork": MLPClassifier(),
-    "XGBoost": XGBClassifier(),
+    # "XGBoost": XGBClassifier(verbosity=1),
     # "LightGBM": LGBMClassifier(),
     # "CatBoost": CatBoostClassifier()
 }
@@ -52,28 +52,42 @@ param_grids = {
     #     "DecisionTree__splitter": ["best", "random"],
     #     "DecisionTree__class_weight": ["balanced"]  # 添加类别权重
     # },
-    # "RandomForest": {
-    #     "RandomForest__n_estimators": [50, 100, 150],  # 增加树的数量
-    #     "RandomForest__max_depth": [3, 5, 10, None],  # 考虑更小的深度以及无限制深度
-    #     "RandomForest__min_samples_split": [2, 4, 6],  # 调整分裂所需最小样本数
-    #     "RandomForest__min_samples_leaf": [1, 2, 4],  # 调整叶节点的最小样本数
-    #     "RandomForest__bootstrap": [True, False],  # 是否使用Bootstrap抽样
-    #     "RandomForest__class_weight": ["balanced", None]  # 考虑类别权重
-    # },
+    "RandomForest": {
+        "RandomForest__n_estimators": [50, 100, 150],  # 增加树的数量
+        "RandomForest__max_depth": [3, 5, 10, None],  # 考虑更小的深度以及无限制深度
+        "RandomForest__min_samples_split": [2, 4, 6],  # 调整分裂所需最小样本数
+        "RandomForest__min_samples_leaf": [1, 2, 4],  # 调整叶节点的最小样本数
+        "RandomForest__bootstrap": [True, False],  # 是否使用Bootstrap抽样
+        "RandomForest__class_weight": ["balanced", None]  # 考虑类别权重
+    },
     # "SVM": {"SVM__C": [0.1, 1, 10], "SVM__kernel": ["linear", "rbf"]},
     # "BP_NeuralNetwork": {"BP_NeuralNetwork__hidden_layer_sizes": [(50,), (100,), (50, 50)],
     #                      "BP_NeuralNetwork__activation": ["tanh", "relu"]},
-    "XGBoost": {
-        "XGBoost__n_estimators": [50, 100, 200],  # 增加树的数量
-        "XGBoost__learning_rate": [0.01, 0.05, 0.1, 0.2],  # 更详细的学习率设置
-        "XGBoost__max_depth": [3, 4, 6],  # 调整最大深度
-        "XGBoost__min_child_weight": [1, 2, 4],  # 最小子节点样本权重和
-        "XGBoost__gamma": [0, 0.1, 0.2],  # 节点分裂所需的最小损失函数下降值
-        "XGBoost__subsample": [0.6, 0.8, 1.0],  # 训练每棵树时抽取的样本比例
-        "XGBoost__colsample_bytree": [0.6, 0.8, 1.0],  # 在建立树时对特征进行采样的比例
-        "XGBoost__reg_lambda": [1, 1.5, 2],  # L2正则化项
-        "XGBoost__reg_alpha": [0, 0.1, 0.2]  # L1正则化项
-    },
+    # "XGBoost": {
+    #     "XGBoost__n_estimators": [50, 100, 200],  # 增加树的数量
+    #     "XGBoost__learning_rate": [0.01, 0.05, 0.1, 0.2],  # 更详细的学习率设置
+    #     "XGBoost__max_depth": [3, 4, 6],  # 调整最大深度
+    #     "XGBoost__min_child_weight": [1, 2, 4],  # 最小子节点样本权重和
+    #     "XGBoost__gamma": [0, 0.1, 0.2],  # 节点分裂所需的最小损失函数下降值
+    #     "XGBoost__subsample": [0.6, 0.8, 1.0],  # 训练每棵树时抽取的样本比例
+    #     "XGBoost__colsample_bytree": [0.6, 0.8, 1.0],  # 在建立树时对特征进行采样的比例
+    #     "XGBoost__reg_lambda": [1, 1.5, 2],  # L2正则化项
+    #     "XGBoost__reg_alpha": [0, 0.1, 0.2]  # L1正则化项
+    # },
+
+    # "XGBoost": {
+    #     "XGBoost__n_estimators": [100],  # 较少的树的数量
+    #     "XGBoost__learning_rate": [0.05],  # 更详细的学习率设置
+    #     "XGBoost__max_depth": [3],  # 调整最大深度
+    #     "XGBoost__min_child_weight": [1, 2, 4],  # 默认值
+    #     "XGBoost__gamma": [0, 0.1, 0.2],  # 轻微的分裂损失阈值
+    #     "XGBoost__subsample": [0.8],  # 子样本比例
+    #     "XGBoost__colsample_bytree": [0.8],  # 特征采样比例
+    #     "XGBoost__reg_lambda": [1, 1.5],  # L2正则化
+    #     "XGBoost__reg_alpha": [0, 0.1]  # L1正则化
+    # }
+
+
     # "LightGBM": {
     #     "LightGBM__n_estimators": [50, 100, 150],
     #     "LightGBM__learning_rate": [0.01, 0.1, 0.2],
@@ -102,7 +116,7 @@ for model_name, model in models.items():
     for sampler_name, sampler in {"ADASYN": ADASYN(n_neighbors=n_neighbors),
                                   "SMOTE": SMOTE(k_neighbors=n_neighbors)}.items():
         pipeline = Pipeline([(sampler_name, sampler), (model_name, model)])
-        grid_search = GridSearchCV(pipeline, param_grids[model_name], cv=cv, scoring='roc_auc')
+        grid_search = GridSearchCV(pipeline, param_grids[model_name], cv=cv, scoring='roc_auc', verbose=3)
         grid_search.fit(X_train, y_train)
 
         best_models[f"{model_name}_{sampler_name}"] = grid_search.best_estimator_
