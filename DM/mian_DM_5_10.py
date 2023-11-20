@@ -122,6 +122,9 @@ plt.title('XGBoost Log Loss')
 plt.show()
 
 dump(xgb_model, 'temp.joblib')
+dump(scaler, 'scaler.joblib')
+# 保存特征选择的索引
+dump(indices, 'indices.joblib')
 
 
 ################
