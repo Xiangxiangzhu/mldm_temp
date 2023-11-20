@@ -29,7 +29,8 @@ df = pd.read_excel(file_path)
 
 ## 选择特征和重新定义标签为二分类问题
 features = df.drop(["患病时间-10-15-", "患病时间-5-10-", "TBA", "PCT", "PLCR", "AFU"], axis=1)
-labels = df["患病时间-10-15-"].replace({1: 0, 2: 1, 3: 1})
+# features = features[['OSM', 'CRE', 'BUNCREA', 'eGFR（分组指标）']]
+labels = df["患病时间-5-10-"].replace({1: 0, 2: 1, 3: 1})
 
 ## 数据预处理
 features.fillna(features.median(), inplace=True)
@@ -39,36 +40,70 @@ features_scaled = scaler.fit_transform(features)
 ## 分割数据集
 X_train, X_test, y_train, y_test = train_test_split(features_scaled, labels, test_size=0.3, random_state=42)
 
+# 特征选择 - 使用随机森林
+rf = RandomForestClassifier(n_estimators=100)
+rf.fit(X_train, y_train)
+
+# 获取特征重要性
+importances = rf.feature_importances_
+
+# 获取最重要的特征的索引（例如，选择前20个特征）
+indices = np.argsort(importances)[::-1][:20]
+
+# 使用重要特征
+X_train_selected = X_train[:, indices]
+X_test_selected = X_test[:, indices]
+
 # 2. 模型训练与选择
 models = {
-    "RandomForest": RandomForestClassifier(),
+    # "RandomForest": RandomForestClassifier(),
+    "XGBoost": XGBClassifier(),
+    # "LightGBM": LGBMClassifier(),
+    # "CatBoost": CatBoostClassifier()
 }
 
 if use_resampling:
     param_grids = {
-        "RandomForest": {
-            "RandomForest__n_estimators": [50, 100, 150],
-            "RandomForest__max_depth": [3, 5, 10, None],
-            "RandomForest__min_samples_split": [2, 4, 6],
-            "RandomForest__min_samples_leaf": [1, 2, 4],
-            "RandomForest__bootstrap": [True, False],
-            "RandomForest__class_weight": ["balanced", None]
+        # "RandomForest": {
+        #     "RandomForest__n_estimators": [50, 100, 150],
+        #     "RandomForest__max_depth": [3, 5, 10, None],
+        #     "RandomForest__min_samples_split": [2, 4, 6],
+        #     "RandomForest__min_samples_leaf": [1, 2, 4],
+        #     "RandomForest__bootstrap": [True, False],
+        #     "RandomForest__class_weight": ["balanced", None]
+        # },
+        "XGBoost": {
+            "XGBoost__n_estimators": [100],  # 较少的树的数量
+            "XGBoost__learning_rate": [0.05],  # 更详细的学习率设置
+            "XGBoost__max_depth": [3],  # 调整最大深度
+            "XGBoost__min_child_weight": [1, 2, 4],  # 默认值
+            "XGBoost__gamma": [0, 0.1, 0.2],  # 轻微的分裂损失阈值
+            "XGBoost__subsample": [0.8],  # 子样本比例
+            "XGBoost__colsample_bytree": [0.8],  # 特征采样比例
+            "XGBoost__reg_lambda": [1, 1.5],  # L2正则化
+            "XGBoost__reg_alpha": [0, 0.1]  # L1正则化
         },
+        # "LightGBM": {
+        #     "LightGBM__n_estimators": [50, 100, 150],
+        #     "LightGBM__learning_rate": [0.01, 0.1, 0.2],
+        #     "LightGBM__max_depth": [3, 4, 5],
+        #     "LightGBM__reg_lambda": [1, 2, 3]
+        # },
     }
 else:
     param_grids = {
-        "RandomForest": {
-            "n_estimators": [50, 100, 150],
-            "max_depth": [3, 5, 10, None],
-            "min_samples_split": [2, 4, 6],
-            "min_samples_leaf": [1, 2, 4],
-            "bootstrap": [True, False],
-            "class_weight": ["balanced", None]
-        },
+        # "RandomForest": {
+        #     "n_estimators": [50, 100, 150],
+        #     "max_depth": [3, 5, 10, None],
+        #     "min_samples_split": [2, 4, 6],
+        #     "min_samples_leaf": [1, 2, 4],
+        #     "bootstrap": [True, False],
+        #     "class_weight": ["balanced", None]
+        # },
     }
 
 ## 数据处理和模型训练
-cv = StratifiedKFold(n_splits=10)
+cv = StratifiedKFold(n_splits=5)
 # cv = LeaveOneOut(5)
 best_models = {}
 best_scores = {}
@@ -92,8 +127,9 @@ for model_name, model in models.items():
         else:
             estimator = Pipeline([(sampler_name, sampler), (model_name, model)])
 
-        # grid_search = GridSearchCV(estimator, param_grids[model_name], cv=cv, scoring='roc_auc', verbose=3)
-        grid_search = GridSearchCV(estimator, param_grids[model_name], cv=cv, scoring='f1', verbose=3)
+        grid_search = GridSearchCV(estimator, param_grids[model_name], cv=cv, scoring='roc_auc', verbose=3)
+        # grid_search = GridSearchCV(estimator, param_grids[model_name], cv=cv, scoring='f1', verbose=3)
+        # grid_search = GridSearchCV(estimator, param_grids[model_name], cv=cv, scoring='f1')
 
         grid_search.fit(X_train, y_train)
 
@@ -166,18 +202,20 @@ for name, model in best_models.items():
 # 4. 加载测试数据并预处理
 test_file_path = 'data_DM_test.xlsx'
 df_test_origin = pd.read_excel(test_file_path)
-df_test = df_test_origin.drop(["患病时间-5-10-", "LDH1", "MG", "PCT", "PLCR", "AFU"], axis=1)
+df_test = df_test_origin.drop(["患病时间-10-15-", "LDH1", "MG", "PCT", "PLCR", "AFU"], axis=1)
 df_test = df_test.dropna()
-test_features = df_test.drop(["患病时间-10-15-"], axis=1)
-test_labels = df_test["患病时间-10-15-"].replace({1: 0, 2: 1, 3: 1})
+test_features = df_test.drop(["患病时间-5-10-"], axis=1)
+# test_features = test_features[['OSM', 'CRE', 'BUNCREA', 'eGFR（分组指标）']]
+test_labels = df_test["患病时间-5-10-"].replace({1: 0, 2: 1, 3: 1})
 test_features_scaled = scaler.transform(test_features)
+test_features_scaled = test_features_scaled[:, indices]
 
-# 5. 评估模型性能
-loaded_model = load('best_model.joblib')
-evaluate_and_plot(loaded_model, test_features_scaled, test_labels, 'Best Model on Test Data')
-loaded_model = load('rf_smoteenn.joblib')
-evaluate_and_plot(loaded_model, test_features_scaled, test_labels, 'SMOTEENN Model on Test Data')
-loaded_model = load('rf_smotetomek.joblib')
-evaluate_and_plot(loaded_model, test_features_scaled, test_labels, 'SMOTETomek Model on Test Data')
-loaded_model = load('voting_clf.joblib')
-evaluate_and_plot(loaded_model, test_features_scaled, test_labels, 'voting_clf Model on Test Data')
+# # 5. 评估模型性能
+# loaded_model = load('best_model.joblib')
+evaluate_and_plot(best_model, test_features_scaled, test_labels, 'Best Model on Test Data')
+# loaded_model = load('rf_smoteenn.joblib')
+# evaluate_and_plot(rf_smoteenn, test_features_scaled, test_labels, 'SMOTEENN Model on Test Data')
+# loaded_model = load('rf_smotetomek.joblib')
+# evaluate_and_plot(rf_smotetomek, test_features_scaled, test_labels, 'SMOTETomek Model on Test Data')
+# loaded_model = load('voting_clf.joblib')
+# evaluate_and_plot(loaded_model, test_features_scaled, test_labels, 'voting_clf Model on Test Data')

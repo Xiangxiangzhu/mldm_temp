@@ -1,21 +1,7 @@
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
 from sklearn.preprocessing import StandardScaler
-from imblearn.over_sampling import ADASYN, SMOTE
-from imblearn.pipeline import Pipeline
 from joblib import dump, load
 import matplotlib.pyplot as plt
-from xgboost import XGBClassifier
-from lightgbm import LGBMClassifier
-from catboost import CatBoostClassifier
-from imblearn.combine import SMOTEENN, SMOTETomek
-from sklearn.ensemble import VotingClassifier
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
 
 # 1. 数据加载与预处理
@@ -61,29 +47,40 @@ test_file_path = 'data_DM_test.xlsx'
 df_test_origin = pd.read_excel(test_file_path)
 df_test = df_test_origin.drop(["患病时间-5-10-", "LDH1", "MG", "PCT", "PLCR", "AFU"], axis=1)
 df_test = df_test.dropna()
+
+ee_test_features = df_test
 test_features = df_test.drop(["患病时间-10-15-"], axis=1)
 test_labels = df_test["患病时间-10-15-"].replace({1: 0, 2: 1, 3: 1})
 test_features_scaled = scaler.transform(test_features)
 
+columns_are_equal = list(features.columns) == list(test_features.columns)
+print("yyhhwiuehfi is: ", columns_are_equal)
+
+df_combined = pd.concat([features, test_features], axis=0).reset_index(drop=True)
+
+print(1)
+
+
+
 # 5. 评估模型性能
-rf_smoteenn = load('rf_smoteenn.joblib')
-# evaluate_and_plot(rf_smoteenn, test_features_scaled, test_labels, 'SMOTEENN Model on Test Data')
-rf_smotetomek = load('rf_smotetomek.joblib')
+# best_model = load('best_model.joblib')
+# evaluate_and_plot(best_model, test_features_scaled, test_labels, 'SMOTEENN Model on Test Data')
+# rf_smotetomek = load('rf_smotetomek.joblib')
 # evaluate_and_plot(rf_smotetomek, test_features_scaled, test_labels, 'SMOTETomek Model on Test Data')
 
 
 # 获取每个模型的预测概率
-prob_smoteenn = rf_smoteenn.predict_proba(test_features_scaled)
-prob_smotetomek = rf_smotetomek.predict_proba(test_features_scaled)
+# prob_smoteenn = rf_smoteenn.predict_proba(test_features_scaled)
+# prob_smotetomek = rf_smotetomek.predict_proba(test_features_scaled)
 
 # 计算平均概率
-avg_prob = (prob_smoteenn + prob_smotetomek) / 2
+# avg_prob = (prob_smoteenn + prob_smotetomek) / 2
 
 # 基于平均概率做出最终预测
-y_pred_test = np.argmax(avg_prob, axis=1)
+# y_pred_test = np.argmax(avg_prob, axis=1)
 
 # 在测试数据上评估平均概率集成模型
-print("Classification Report on Test Data:")
-print(classification_report(test_labels, y_pred_test))
-print("Confusion Matrix:")
-print(confusion_matrix(test_labels, y_pred_test))
+# print("Classification Report on Test Data:")
+# print(classification_report(test_labels, y_pred_test))
+# print("Confusion Matrix:")
+# print(confusion_matrix(test_labels, y_pred_test))
