@@ -2,17 +2,25 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from joblib import dump, load
-from xgboost import XGBClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from imblearn.over_sampling import ADASYN, SMOTE
 from imblearn.combine import SMOTEENN, SMOTETomek
 from util import evaluate_and_plot
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
+from xgboost import XGBClassifier
 
 print("#################################### switch defined here! ####################################")
 use_resampling = True
-selected_model = 'random_forest'  # xgboost, random_forest, gradient_boosting
+selected_model = 'random_forest'  # 'logistic_regression', 'svm', 'knn', 'naive_bayes', 'neural_network', 'adaboost', 'gradient_boosting', 'random_forest', 'lightgbm', 'catboost', 'xgboost'
 print("#################################### switch defined here! ####################################")
 
 file_path = 'raw.xlsx'
@@ -28,17 +36,6 @@ feature_concatenate = (pd.concat([arg_data_DM, arg_data_DKD], axis=0).reset_inde
 train_label = feature_concatenate["label"]
 train_feature = feature_concatenate.drop(["label"], axis=1)
 
-# arg_test_DM = df["eval_DM"]
-# arg_test_DM["label"] = 0
-# arg_test_DKD = df["eval_DKD"]
-# arg_test_DKD["label"] = 1
-#
-# test_feature_concatenate = (pd.concat([arg_test_DM, arg_test_DKD], axis=0).reset_index(drop=True)
-#                             .drop(["AFU", "PCT", "PLCR"], axis=1).dropna())
-# test_label = test_feature_concatenate["label"]
-# test_feature = test_feature_concatenate.drop(["label"], axis=1)
-# file_path = 'test_data.xlsx'
-# test_feature_concatenate.to_excel(file_path, index=False)
 print("#################################### data is reformed! ####################################")
 
 # noinspection DuplicatedCode
@@ -56,7 +53,7 @@ indices = np.argsort(importances)[::-1][:20]
 # 使用重要特征
 X_train = X_train[:, indices]
 
-n_neighbors = 2
+n_neighbors = 4
 # 检查是否使用重采样策略
 if use_resampling:
     # 选择重采样策略
@@ -71,17 +68,20 @@ print("#################################### data is preprocessed! ##############
 # 训练XGBoost模型
 # noinspection DuplicatedCode
 models = {
-    'xgboost': XGBClassifier(
-        n_estimators=500,
-        learning_rate=0.05,
-        max_depth=10,
-        min_child_weight=1,
-        gamma=0.2,
-        subsample=0.7,
-        colsample_bytree=0.7,
-        reg_lambda=2,
-        reg_alpha=0.15
+    'logistic_regression': LogisticRegression(max_iter=100, solver='lbfgs', class_weight='balanced'),
+    'svm': SVC(kernel='rbf', C=10.0, gamma='auto', probability=True, class_weight='balanced'),
+    'knn': KNeighborsClassifier(n_neighbors=5, weights='uniform'),
+    'naive_bayes': GaussianNB(var_smoothing=1e-15),
+    'neural_network': MLPClassifier(
+        hidden_layer_sizes=(30, 30, 30),
+        activation='relu',
+        solver='adam',
+        learning_rate_init=0.001,
+        alpha=0.001,
+        max_iter=5000
     ),
+    'adaboost': AdaBoostClassifier(n_estimators=100, learning_rate=1.0),
+    'gradient_boosting': GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, subsample=0.8),
     'random_forest': RandomForestClassifier(
         n_estimators=500,
         max_depth=2,
@@ -91,14 +91,11 @@ models = {
         bootstrap=True,
         class_weight='balanced'
     ),
-    'gradient_boosting': GradientBoostingClassifier(
-        n_estimators=100,
-        learning_rate=0.1,
-        max_depth=3,
-        subsample=0.8
-    )
+    'lightgbm': LGBMClassifier(n_estimators=100, learning_rate=0.1, max_depth=-1, num_leaves=31),
+    'catboost': CatBoostClassifier(iterations=100, learning_rate=0.1, depth=6),
+    'xgboost': XGBClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, min_child_weight=1, subsample=0.8,
+                             colsample_bytree=0.8)
 }
-
 #################
 # 设置5折交叉验证
 cv = StratifiedKFold(n_splits=20)
