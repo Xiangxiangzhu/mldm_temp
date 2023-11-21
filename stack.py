@@ -54,39 +54,17 @@ def combined_prediction(model1, model2, x_test_1, x_test_2, weight_ratio=2):
 
     # 组合预测
     combined_pred = []
-    combined_p = []
-    combined_1 = []
-    combined_2 = []
-    combined_n = []
-    ttt = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
-    temp = 0
     for i in range(len(pred1)):
         if pred1[i] == pred2[i]:
             combined_pred.append(pred1[i])
         else:
-
             # 按照给定的权重比例计算最终概率
             combined_proba = (weight_ratio * proba1[i] + proba2[i]) / (weight_ratio + 1)
             # combined_pred.append(1 if combined_proba > 0.6 else 0)
             if (proba2[i] < 0.85 and proba1[i] < 1e-8) or (proba1[i] > 0.1 and 0.997 > proba2[i] > 0.99):
                 combined_pred.append(1)
-                combined_n.append(1)
             else:
                 combined_pred.append(0)
-                combined_n.append(0)
-            # combined_pred.append(ttt[temp])
-
-            combined_p.append(combined_proba)
-            combined_1.append(proba1[i])
-            combined_2.append(proba2[i])
-            temp += 1
-
-    aaa = combined_pred
-    aaa1 = combined_p
-    aaa2 = combined_1
-    aaa3 = combined_2
-    aaa4 = combined_n
-
     return np.array(combined_pred)
 
 
@@ -96,7 +74,7 @@ def evaluate_and_plot_2(model1, model2, x_test_1, x_test_2, y_test_, title):
 
     # 打印分类报告和混淆矩阵
     print(f"Classification Report for {title}:")
-    print(classification_report(y_test_, y_pred_test))
+    print(classification_report(y_test_, y_pred_test, digits=4))
     print("Confusion Matrix:")
     print(confusion_matrix(y_test_, y_pred_test))
 
@@ -110,6 +88,9 @@ if __name__ == '__main__':
     # 加载特征选择的索引
     indices_1 = load('35-0-6-43/indices.joblib')
     indices_2 = load('20-15-1-48/indices.joblib')
+
+    a1 = np.sort(indices_1)
+    a2 = np.sort(indices_2)
     # 加载训练好的模型
     model_1 = load('35-0-6-43/temp.joblib')
     model_2 = load('20-15-1-48/temp.joblib')
@@ -122,8 +103,8 @@ if __name__ == '__main__':
     X_test_1 = preprocess_and_select_features(X_test, scaler_1, indices_1)
     X_test_2 = preprocess_and_select_features(X_test, scaler_2, indices_2)
 
-    # evaluate_and_plot(model_1, X_test_1, y_test, "test model 1")
-    # evaluate_and_plot(model_2, X_test_2, y_test, "test model 2")
+    evaluate_and_plot(model_1, X_test_1, y_test, "test model 1")
+    evaluate_and_plot(model_2, X_test_2, y_test, "test model 2")
     # evaluate_and_plot(model_2, X_test, y_test, "test model 1")
 
     # 调用函数进行评估

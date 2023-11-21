@@ -6,7 +6,8 @@ def evaluate_and_plot(model, x_test_, y_test_, title):
     # 预测并打印分类报告
     y_pred_test = model.predict(x_test_)
     print(f"Classification Report for {title}:")
-    print(classification_report(y_test_, y_pred_test))
+    # print(classification_report(y_test_, y_pred_test))
+    print(classification_report(y_test_, y_pred_test, digits=4))
     print("Confusion Matrix:")
     print(confusion_matrix(y_test_, y_pred_test))
 

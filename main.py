@@ -17,10 +17,11 @@ from sklearn.ensemble import RandomForestClassifier
 from lightgbm import LGBMClassifier
 from catboost import CatBoostClassifier
 from xgboost import XGBClassifier
+import seaborn as sns
 
 print("#################################### switch defined here! ####################################")
 use_resampling = True
-selected_model = 'random_forest'  # 'logistic_regression', 'svm', 'knn', 'naive_bayes', 'neural_network', 'adaboost', 'gradient_boosting', 'random_forest', 'lightgbm', 'catboost', 'xgboost'
+selected_model = 'naive_bayes'  # 'logistic_regression', 'svm', 'knn', 'naive_bayes', 'neural_network', 'adaboost', 'gradient_boosting', 'random_forest', 'lightgbm', 'catboost', 'xgboost'
 print("#################################### switch defined here! ####################################")
 
 file_path = 'raw.xlsx'
@@ -53,6 +54,58 @@ indices = np.argsort(importances)[::-1][:20]
 # 使用重要特征
 X_train = X_train[:, indices]
 
+# print("#################################### temp result ####################################")
+# # 假设 train_feature.columns 包含了所有特征的名称
+# feature_importances = pd.DataFrame({
+#     'Feature': train_feature.columns,
+#     'Importance': importances
+# }).sort_values(by='Importance', ascending=False).reset_index(drop=True)
+#
+# # 显示前20个最重要的特征
+# print(feature_importances)
+#
+# # Dictionary mapping Chinese column names to English
+# chinese_to_english = {
+#     "eGFR（分组指标）": "eGFR",
+#     "患病时间-5-10-": "Illness \n Duration 5-10",
+#     "患病时间-10-15-": "Illness \n Duration 10-15",
+#     "CRE（mg/dl）": "CRE (mg/dl)",
+#     "有无肾疾病": "Kidney Disease",
+#     "有无高血压": "Presence of \n Hypertension",
+#     "血糖控制情况": "Blood Sugar \n Control",
+#     "是否用胰岛素": "Insulin Usage",
+#     "舒张压": "Diastolic \n Pressure",
+#     "收缩压": "Systolic \n Pressure",
+#     "吸烟": "Smoking",
+#     "年龄": "Age",
+#     # Add more translations as needed
+# }
+#
+#
+# # Function to replace Chinese text with English
+# def translate_chinese(column):
+#     return column.map(lambda x: chinese_to_english.get(x, x))
+#
+#
+# # Apply the function to the specific column
+# feature_importances['Feature'] = translate_chinese(feature_importances['Feature'])
+#
+# # 设置Seaborn的样式
+# sns.set(style="whitegrid")
+#
+# # 可视化前20个最重要的特征
+# plt.figure(figsize=(12, 8))  # 调整画布大小
+# sns.barplot(x='Importance', y='Feature', data=feature_importances.head(20))
+#
+# # 设置标题和坐标轴标签
+# plt.title('Top 20 Feature Importances', fontsize=16)
+# plt.xlabel('Importance Score', fontsize=14)
+# plt.ylabel('Features', fontsize=14)
+# plt.savefig("feature_importance.png")
+# plt.show()
+#
+# print("#################################### temp result ####################################")
+
 n_neighbors = 4
 # 检查是否使用重采样策略
 if use_resampling:
@@ -62,6 +115,33 @@ if use_resampling:
     X_train, y_train = sampler.fit_resample(X_train, y_train)
 else:
     pass
+
+# ################################################################################################
+# # 可视化原始数据
+# a = 5
+# b = 7
+# plt.figure(figsize=(10, 5))
+# plt.subplot(1, 2, 1)
+# plt.scatter(X_train[y_train == 0][:, a], X_train[y_train == 0][:, b], label="Class 0")
+# plt.scatter(X_train[y_train == 1][:, a], X_train[y_train == 1][:, b], label="Class 1")
+# plt.title("Original Data Distribution")
+# plt.xlabel("Feature 1")
+# plt.ylabel("Feature 2")
+# plt.legend()
+#
+# # 可视化重采样后的数据
+# plt.subplot(1, 2, 2)
+# plt.scatter(X_train_[y_train_ == 0][:, a], X_train_[y_train_ == 0][:, b], label="Class 0")
+# plt.scatter(X_train_[y_train_ == 1][:, a], X_train_[y_train_ == 1][:, b], label="Class 1")
+# plt.title("SMOTETomek Resampled Data")
+# plt.xlabel("Feature 1")
+# plt.ylabel("Feature 2")
+# plt.legend()
+#
+# plt.tight_layout()
+# plt.savefig("resample.png")
+# plt.show()
+# ################################################################################################
 
 print("#################################### data is preprocessed! ####################################")
 

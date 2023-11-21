@@ -23,7 +23,6 @@ def preprocess_and_select_features(X_new):
     return X_new_selected
 
 
-
 ## 模型预评估
 test_file_path = 'data_DM_test.xlsx'
 df_test_origin = pd.read_excel(test_file_path)
